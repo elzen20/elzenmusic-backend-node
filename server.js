@@ -27,9 +27,9 @@ app.post("/create-payment-intent", async (req, res) => {
   
   try {
     var total = 0;
-    req.body.forEach(x=>total+=x.price)
-    console.log(Math.round(total*100))
-
+    req.body[0].requestTabs.forEach(x=>total+=x.price)
+    console.log(req.body)
+    
     const paymentIntent = await stripe.paymentIntents.create({
       currency: "MXN",
       amount: Math.round(total*100),
@@ -47,6 +47,23 @@ app.post("/create-payment-intent", async (req, res) => {
       },
     });
   }
+});
+app.get("/download-pdf", (req, res) => {
+  const filePath = "./ELZENPRESSKIT.pdf";
+
+  // Establecer los encabezados para indicar al navegador que debe descargar el archivo
+  res.setHeader('Content-Disposition', 'attachment; filename="ELZENPRESSKIT.pdf"');
+  res.setHeader('Content-Type', 'application/pdf');
+
+  // Iniciar la descarga del PDF
+  res.download(filePath, (err) => {
+    if (err) {
+      console.error("Error al descargar el PDF:", err);
+      res.status(500).send("Error al descargar el PDF");
+    } else {
+      console.log("Descarga del PDF iniciada correctamente");
+    }
+  });
 });
 
 app.listen(5252, () =>
