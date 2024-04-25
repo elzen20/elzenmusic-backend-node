@@ -67,10 +67,9 @@ exports.sendMail = async  (email, subject, message, file, fileName) => {
   
       // Set up the email options and delivering it
       const result = await transport.sendMail(mailOptions);
-      console.log(result);
       return result;
     } catch (error) {
-      console.log(error);
+      logger.error(error);
       return error;
     }
   }
