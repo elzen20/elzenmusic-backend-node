@@ -46,7 +46,7 @@ exports.downloadPDF = async (req, res) => {
         try {
           await sendMail(
             email,
-            "Estos son sus Tablaturas",
+            "Estas son sus Tablaturas",
             "Muchas Gracias por su compra",
             `./${ARCHIVE_NAME}`,
             ARCHIVE_NAME
