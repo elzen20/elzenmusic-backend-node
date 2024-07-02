@@ -1,52 +1,47 @@
-const { google } = require("googleapis");
-const nodemailer = require("nodemailer");
+const { SESClient, SendEmailCommand } = require("@aws-sdk/client-ses");
 
-const CLIENT_EMAIL = process.env.CLIENT_EMAIL;
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
-const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
+const REGION = process.env.AWS_REGION; // Define la región de AWS
+const SENDER_EMAIL = process.env.CLIENT_EMAIL; // Email del remitente verificado
 
-exports.sendMail = async (emailDestination, subject, htmlEmail, attachment = null, fileName = null, ) => {
-  const OAuth2Client = new google.auth.OAuth2(
-    CLIENT_ID,
-    CLIENT_SECRET,
-    REDIRECT_URI
-  );
+if (!SENDER_EMAIL) {
+  throw new Error("SENDER_EMAIL no está configurado en las variables de entorno.");
+}
 
-  OAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
+// Configura el cliente SES
+const sesClient = new SESClient({ region: REGION });
 
+exports.sendMail = async (emailDestination, subject, htmlEmail, textEmail = htmlEmail.replace(/<\/?[^>]+(>|$)/g, "")) => {
   try {
-    const accessToken = await OAuth2Client.getAccessToken();
-
-    const transport = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        type: "OAuth2",
-        user: CLIENT_EMAIL,
-        clientId: CLIENT_ID,
-        clientSecret: CLIENT_SECRET,
-        refreshToken: REFRESH_TOKEN,
-        accessToken: accessToken,
+    // Configura los parámetros del correo electrónico
+    const params = {
+      Destination: {
+        ToAddresses: [emailDestination], // Direcciones de correo electrónico destinatarias
       },
-    });
-
-
-    const mailOptions = {
-      from: `Elzen Music <${CLIENT_EMAIL}>`,
-      to: emailDestination,
-      subject: subject,
-      html: htmlEmail,
-      attachments: attachment
-        ? [{ filename: fileName, path: attachment, contentType: "application/pdf" }]
-        : [],
+      Message: {
+        Body: {
+          Html: {
+            Charset: "UTF-8",
+            Data: htmlEmail,
+          },
+          Text: {
+            Charset: "UTF-8",
+            Data: textEmail, // Convierte HTML a texto plano
+          },
+        },
+        Subject: {
+          Charset: "UTF-8",
+          Data: subject,
+        },
+      },
+      Source: SENDER_EMAIL, // Dirección de correo electrónico remitente verificada
     };
 
-    const result = await transport.sendMail(mailOptions);
-    console.log("Enviado correctamente");
+    // Envía el correo
+    const command = new SendEmailCommand(params);
+    const result = await sesClient.send(command);
     return result;
   } catch (error) {
-    console.error(error);
-    return error;
+    console.error("Error al enviar correo:", error);
+    throw error;
   }
 };
